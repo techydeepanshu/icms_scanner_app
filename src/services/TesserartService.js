@@ -4,7 +4,7 @@ import axios from "axios"
 import RNFS from 'react-native-fs';
 
 import textractHelper from 'aws-textract-helper';
-
+import { ICMS_FRONTEND_IP } from "../variable";
 const appendURL = process.env.NODE_ENV === "production" ? "/server" : "";
 export class TesseractService {
     async PostImage(images) {
@@ -71,7 +71,7 @@ export class TesseractService {
         let res ;
         var config = {
             method: 'get',
-            url: `http://192.168.1.8:5002/api/product?invoiceName=${invoiceName}`,
+            url: `${ICMS_FRONTEND_IP}/api/product?invoiceName=${invoiceName}`,
             headers: { }
           };
           

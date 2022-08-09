@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, FlatList } from 'react-native';
+import { View, StyleSheet, Text, FlatList, ActivityIndicator, Modal, TouchableOpacity, TextInput, Image, Alert } from 'react-native';
 import { useRoute } from "@react-navigation/native";
 import { TesseractService } from "../services/TesserartService";
 import { chooseFilter } from "../utils/filterData";
+// import DatePicker from 'react-native-modern-datepicker';
+import DatePicker from 'react-native-datepicker'
+import { InventoryService } from "../services/InventoryService";
 // import Button from "../UI/Button";
 // import TextField from "@material-ui/core/TextField";
 // import Autocomplete from "@material-ui/lab/Autocomplete";
-const ShowData = () => {
+
+const ShowData = ({navigation}) => {
   const [tableData, setTableData] = useState([]);
   const [emptyColumn, setEmptyColumn] = useState([]);
   const [productDetails, setProductDetails] = useState([]);
@@ -15,32 +19,31 @@ const ShowData = () => {
   const [itemNoDropdown, setItemNoDropdown] = useState([]);
   const [loader, setLoader] = useState(true);
   const [reviewItems, setReviewItems] = useState([]);
-  const header = [
-    "Serial No.",
-    "Barcode",
-    "POS SKU",
-    "Qty Shipped",
-    "ITEM NO",
-    "Link Product",
-
-    "DESCRIPTION",
-    "Units in  Case",
-    "Case cost",
-    "Extended Price",
-    "Unit Cost ",
-    "Unit Price",
-    "Mark up (%)",
-    "Tick to delete",
-    "Update POS",
-    "Serial No.(2)"
-  ];
+  const [loading, setLoading] = useState(true);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedData, setSelectedData] = useState({ date: "", invoiceNo: "" });
+  // const [modalLoader, setModalLoader] = useState({ loader: true, done: false });
+  const [modalLoader, setModalLoader] = useState({ loader: false, done: false });
+  const [ocrProducts, setOcrProducts] = useState([]);
+  const [currentDate, setCurrentDate] = useState();
   const propsData = useRoute().params;
   // console.log("route : ",props.params)
   // const [propsData,setPropsData] = useState(props.params);
   const tesseractService = new TesseractService();
   console.log("propsData : ", propsData);
   /**Fetch the data from the aws textract for the image */
+  const inventoryService = new InventoryService();
 
+  const scanInvoiceData =
+  {
+    InvoiceName: propsData.selectedInvoice,
+    InvoiceDate: "",
+    InvoiceNumber: "",
+    InvoicePage: "",
+    InvoiceData: [],
+    SavedDate: "",
+    SavedInvoiceNo: ""
+  }
 
   async function fetchOCRData() {
     // return chetak();
@@ -92,7 +95,7 @@ const ShowData = () => {
     return products;
   }
   useEffect(() => {
-
+    // setLoading(true)
     fetchOCRData().then((ocrData) => {
       console.log(ocrData);
       invoiceData()
@@ -116,7 +119,7 @@ const ShowData = () => {
           products = convertToUpperCase(products);
           // console.log(products);
           // scanInvoiceData.InvoiceData = ocrData;
-          // setOcrProducts(ocrData);
+          setOcrProducts(ocrData);
 
           console.log("OCR Data");
           console.log(ocrData);
@@ -244,15 +247,144 @@ const ShowData = () => {
           setTableData(table.filter((data) => data !== null));
           //   setItemNoDropdown(Object.keys(products));
           //   setProductDetails(products);
+          setLoading(false)
         })
         .catch((err) => {
           console.log("error on mapping ocrdata", err)
+          setLoading(false)
           // setLoader(false);
         });
     });
-
+    const curDate = new Date();
+    console.log(curDate);
+    let date =
+      curDate.getFullYear() +
+      "-" +
+      (curDate.getMonth() + 1) +
+      "-" +
+      curDate.getDate();
+    console.log("currentdate : ",date);
+    setCurrentDate(date)
   }, []);
 
+
+  const saveInvoiceData = async () => {
+    console.log("saveInvoiceData : ", selectedData)
+
+    try {
+
+
+      setModalLoader((prev) => {
+        return { loader: true, done: false }
+      })
+      // console.log(invDate);
+      // console.log(invNo);
+      // console.log(invPage);
+      // console.log(ocrProducts);
+
+      ocrProducts.map((product) => { product.isUpdated = "false" });
+      console.log(ocrProducts);
+
+      scanInvoiceData.InvoiceName = propsData.selectedInvoice;
+      scanInvoiceData.InvoiceDate = selectedData.date;
+      scanInvoiceData.InvoiceNumber = selectedData.invoiceNo;
+      scanInvoiceData.InvoicePage = "";
+      scanInvoiceData.InvoiceData = ocrProducts;
+
+
+      // setScanInvoiceData(data);
+      // console.log(scanInvoiceData);
+      scanInvoiceData.SavedDate = selectedData.date;
+      scanInvoiceData.SavedInvoiceNo = selectedData.invoiceNo;
+      console.log(scanInvoiceData);
+      // const resScnInvDta =  await inventoryService.CreateScanInvoiceData(scanInvoiceData);
+      // console.log(resScnInvDta);
+      // if(resScnInvDta === "exist") {
+      //   alert("Invoice with same no. and date already exists, change either of the 2 values");
+      //   toggleModal();
+      // }else {
+      //   alert("Invoice Saved Successfully");
+
+      // }
+
+      const resScnInvDta = await inventoryService.CreateScanInvoiceData(scanInvoiceData).then(async (res) => {
+        console.log(res)
+        if (res !== "exist") {
+          console.log("ocrProducts : ", ocrProducts)
+          console.log("tableData : ", tableData)
+          await Promise.all(
+            tableData.filter((elem) => elem.qty !== "" || elem.qty !== "0").map(async (element, i) => {
+              await inventoryService.InsertAllProducts({
+                SerialNoInInv: i + 1,
+                barcode: element.barcode,
+                itemNo: element.itemNo,
+                invDescription: element.description,
+                invQty: element.qty,
+                unitInCase: element.pieces,
+                totalQty: element.qty * element.pieces,
+                invCaseCost: element.unitPrice,
+                invExtendedPrice: element.extendedPrice,
+                invSku: element.posSku,
+                invUnitCost: element.cp,
+                invUnitPrice: element.sellingPrice,
+                markup: element.markup,
+                posName: element.posName,
+                posSku: element.posSku,
+                posSize: element.size,
+                posDepartment: element.department,
+                posUnitCost: element.cost,
+                posUnitPrice: element.sellingPrice,
+                priceIncrease: element.priceIncrease,
+                show: element.show,
+                invProductUnit: "",
+                isUpdated: "false",
+                isReviewed: element.isReviewed,
+                linkingCorrect: element.LinkingCorrect,
+                oldInventory: "",
+                newInventory: element.qty * element.pieces,
+                isInventoryUpdated: "",
+                invoiceNo: selectedData.invoiceNo,
+                invoiceName: propsData.selectedInvoice,
+                invoiceSavedDate: selectedData.date,
+                lastUpdationDate: currentDate,
+                linkByBarcode: "",
+                linkByName: "",
+                person: ""
+              })
+
+            })
+          )
+          setModalLoader((prev) => {
+            return { loader: false, done: true }
+          })
+          setTimeout(()=>{
+            
+            setModalVisible(!modalVisible)
+            navigation.navigate("Dropdown")
+          
+          }, 1000);
+          
+          // Alert.alert("Invoice Saved Successfully");
+
+        } else {
+          Alert.alert("Invoice with same no. and date already exists, change either of the 2 values");
+          // Alert.alert("Some Error, Please Try Again");
+          
+          setModalLoader((prev) => {
+            return { loader: false, done: false }
+          })
+          
+        }
+      });
+
+    } catch (err) {
+      Alert.alert("Some Error, Please Try Again");
+      setModalVisible(!modalVisible)
+      setModalLoader((prev) => {
+        return { loader: false, done: false }
+      })
+    }
+  };
 
 
   const renderTableData = () => {
@@ -279,261 +411,22 @@ const ShowData = () => {
           // let emptyColumn = [...emptyColumnList, index];
           // emptyColumnList = [...new Set(emptyColumn)];
           element.isEmpty = true
-        }else{
+        } else {
           element.isEmpty = false
         }
         let isFree = element.qty != 0 && element.extendedPrice === "0.00";
 
-        // return (
-        //   <tr
-        //     key={index}
-        //     className={isEmpty ? styles.red : isFree ? styles.free : null}
-        //     /* style={isUpdated === "true" ? updateIndex === index ? {backgroundColor: "lightBlue"} : {}
-        //           : element.show ? { opacity: "1" } : { opacity: "0.4" }}*/
 
-        //   >
-        //     <td>{index + 1}</td>
-        //     <td className={styles.element}>
-
-        //       {/* <IconButton
-        //         color="primary"
-        //         aria-label="add to review"
-        //         // onClick={() => addForReview(element, index)}
-        //       >
-        //         <InfoOutlinedIcon
-        //           style={
-        //             reviewItems.includes(index)
-        //               ? { backgroundColor: "green" }
-        //               : null
-        //           }
-        //         /> 
-        //       </IconButton>
-        //       <div className={element.isReviewed  === "true" || (showPosIndex === index && stateUpdated === "true") ? styles.tooltipIsReviewed: styles.tooltip} >
-        //         <p>POS Product- {showPosIndex === index ? showPosState.pos : element.posName }</p>
-        //         <p>UPC- {showPosIndex === index ? showPosState.barcode : element.barcode}</p>
-        //         <p>Size- {showPosIndex === index ? showPosState.size : element.size}</p>
-        //         <p>Department - {showPosIndex === index ? showPosState.department : element.department}</p>
-        //         <p>Unit Cost- {showPosIndex === index ? showPosState.unitCost : element.cost}</p> 
-        //         <p>Unit Price- {showPosIndex === index ? showPosState.unitPrice : element.sellingPrice}</p>
-        //         <div >
-        //         <button onClick={ () => {
-        //                     if(notFounds === "true"){
-        //                       toggleModal();
-        //                     }else{
-        //                       updateItem(props, (parseFloat(element.unitPrice) / parseInt(element.pieces)).toFixed(2))
-        //                     }
-        //                   }
-        //                 } 
-        //           disabled={showPosIndex === index ? false : true}
-        //           style={{backgroundColor: "green",
-        //           border: "none",
-        //           color: "white",
-        //           padding: "4px 8px",
-        //           textAlign: "center",
-        //           textDecoration: "none",
-        //           display: "inline-block",
-        //           fontSize: "14px",
-        //           align: "left"}} >
-        //           Update Item
-        //         </button>
-        //         </div> 
-        //       </div> */}
-        //     </td>
-        //     <td>{showPosIndex === index ? showPosState.posSku : element.posSku}</td>
-        //     <td>
-        //       <TextField
-        //         type="tel"
-        //         value={element.qty}
-        //         id="outlined-secondary"
-        //         variant="outlined"
-        //         onChange={(e) => {
-        //           handleChange(index, "qty", e.target.value);
-        //         }}
-        //         style={{ width: 100 }}
-        //       />
-        //     </td>
-        //     <td>
-        //       <Autocomplete
-        //         value={element.itemNo}
-        //         onChange={(event, newValue) => {
-        //           if (newValue) {
-        //             handleChange(index, "itemNo", newValue);
-        //           }
-        //         }}
-        //         id="combo-box"
-        //         options={itemNoDropdown}
-        //         getOptionLabel={(option) => option}
-        //         style={{ width: 200 }}
-        //         renderInput={(params) => (
-        //           <TextField {...params} variant="outlined" />
-        //         )}
-        //       />
-        //     </td>
-        //     <td>
-        //       <Autocomplete
-        //         value={showPosIndex  === index ? showPosState.item : element.itemNo }
-        //         onChange={(event, newValue) => {
-        //           if (newValue) {
-        //             let newState = { ...showPosState };
-        //             console.log(newValue);
-        //             // newState.item = newValue.name;
-        //             newState.item = element.itemNo
-        //             newState.description = element.description;
-        //             newState.barcode = newValue.upc;
-        //             newState.pos = newValue.name;
-        //             newState.posSku = newValue.sku;
-        //             newState.size = newValue.size;
-        //             newState.department = newValue.department;
-        //             newState.unitCost = newValue.cost;
-        //             newState.unitPrice = newValue.price;
-        //             setShowPosState(newState);
-        //             setShowPosIndex(index);
-        //             setUnitCost(newValue.cost);
-        //             if(isEmpty){
-        //               setNotFounds("true");
-        //             }
-        //             //setDisabled(false);
-        //             //updateOnHoverDetails(index);
-        //             //setShowPosIndex(index);
-        //             // console.log(newValue);
-        //             // console.log(newState);
-        //             //console.log(showPosState);
-
-        //           }
-        //         }}
-        //         id="combo-box"
-        //         disabled
-        //         // options={element.fuzzSuggestion}
-        //         options={hicksvilleData}
-        //         getOptionLabel={(option) => option.label ?? element.itemNo}
-        //         style={{ width: 400 }}
-        //         renderInput={(params) => (
-        //           <TextField {...params} variant="outlined" />
-        //         )}
-        //       />
-        //     </td>
-
-        //     <td>{element.description}</td>
-        //     {/* <td>{element.pieces}</td> */}
-        //     <td>
-        //       <TextField
-        //         type="tel"
-        //         value={element.pieces}
-        //         variant="outlined"
-        //         onChange={(e) => {
-        //           handleChange(index, "pieces", e.target.value);
-        //         }}
-        //         style={{ width: 100 }}
-        //       />
-        //     </td>
-        //     <td>
-        //       <TextField
-        //         type="tel"
-        //         value={element.unitPrice}
-        //         variant="outlined"
-        //         onChange={(e) => {
-        //           handleChange(index, "unitPrice", e.target.value);
-        //         }}
-        //         style={ 
-        //           // element.priceIncrease === 1 
-        //           //   ? { backgroundColor: "#1a8cff", width: 100 }
-        //           //   : element.priceIncrease === -1 
-        //           //   ? { backgroundColor: "#ffb31a", width: 100 }
-        //           //   : { width: 100 }
-        //           showPosIndex === index ? costInc==="true" ? { backgroundColor: "#1a8cff", width: 100 } : costDec==="true" ? { backgroundColor: "#ffb31a", width: 100 } : {width: 100}
-        //           : element.priceIncrease === 1 
-        //               ? { backgroundColor: "#1a8cff", width: 100 }
-        //               : element.priceIncrease === -1 
-        //               ? { backgroundColor: "#ffb31a", width: 100 }
-        //               : { width: 100 }
-        //         }
-        //       />
-        //     </td>
-        //     <td>{element.extendedPrice}</td>
-        //     {/* <td>{element.cp}</td> */}
-        //     <td>
-        //       <TextField
-        //         type="tel"
-        //         value={element.cp}
-        //         variant="outlined"
-        //         onChange={(e) => {
-        //           handleChange(index, "cp", e.target.value);
-        //         }}
-        //         style={{ width: 100 }}
-        //       />
-        //     </td>
-        //     <td>
-        //       <TextField
-        //         type="tel"
-        //         value={element.sp}
-        //         variant="outlined"
-        //         onChange={(e) => {
-        //           handleChange(index, "sp", e.target.value);
-        //         }}
-        //         style={{ width: 100 }}
-        //       />
-        //     </td>
-        //     <td>{element.markup}</td>
-        //     {/* <td>
-        //       <Checkbox
-        //         checked={!element.show}
-        //         onChange={(e) => handleChange(index, "show", e.target.value)}
-        //         inputProps={{ "aria-label": "primary checkbox" }}
-        //       />
-        //     </td> */}
-        //      <td>
-        //       <Button
-        //         text={element.show ? "Delete" : "Undo"}
-        //         color="btn btn-info"
-        //         type="submit"
-        //         onClick={() => deleteRow(index)}
-        //       />
-        //     </td>
-        //     <td>
-        //     <Button 
-        //         text="Update POS"
-        //         color="btn btn-info"
-        //         type="submit"
-        //         onClick={() => pushSingleItemToInventory(index)}
-        //         style={{ width: 120 }}
-        //       />
-
-        //     </td>
-        //     <td>{index + 1}</td>
-        //     {/* <td>
-        //       <Button
-        //         text={element.show ? "Delete" : "Undo"}
-        //         color="btn btn-info"
-        //         type="submit"
-        //         onClick={() => deleteRow(index)}
-        //       />
-        //     </td> */}
-        //   </tr>
-        // );
-
-        // return (
-        //   <View style={{ flexDirection: "row" }}>
-        //     <View style={{ width: 100 }}>
-        //       <Text>{index + 1}</Text>
-        //     </View>
-        //     <View style={{ width: 100 }}>
-        //       <Text>{element.barcode}</Text>
-        //     </View>
-        //     <View style={{ width: 100 }}>
-        //       <Text>{element.posSku}</Text>
-        //     </View>
-        //   </View>
-        // )
 
       });
 
-let index = 1
-let i = 0
-      const item = ({item})=>{
+      let index = 1
+      let i = 0
+      const item = ({ item }) => {
         return (
-          <View style={{ flexDirection: "row" ,borderWidth:0.2,borderColor:"black",padding:10,backgroundColor:item.isEmpty===true?"red":""}}>
+          <View style={{ flexDirection: "row", borderWidth: 0.2, borderColor: "black", padding: 10, backgroundColor: item.isEmpty === true ? "red" : "" }}>
             <View style={{ width: 40 }}>
-              <Text>{i+1}</Text>
+              <Text>{i + 1}</Text>
             </View>
             <View style={{ width: 120 }}>
               <Text>{item.barcode}</Text>
@@ -577,71 +470,281 @@ let i = 0
           </View>
         )
       }
-      console.log("rows : ", rows)
+      // console.log("rows : ", rows)
       return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: '10%' }}>
+        <>
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: '10%' }}>
 
-          <View style={{ flexDirection: "row" }}>
-            <View style={{ width: 20 }}>
-              <Text>ID</Text>
-            </View>
-            <View style={{ width: 120 }}>
-              <Text>barcode</Text>
-            </View>
-            <View style={{ width: 60 }}>
-              <Text>posSku</Text>
-            </View>
-            <View style={{ width: 30 }}>
-              <Text>Quantity</Text>
-            </View>
-            <View style={{ width: 200 }}>
-              <Text>itemNO</Text>
-            </View>
-            <View style={{ width: 200 }}>
-              <Text>LINK PRODUCT</Text>
-            </View>
-            <View style={{ width: 300 }}>
-              <Text>LINK DESCRIPTION</Text>
-            </View>
-            <View style={{ width: 40 }}>
-              <Text>UNITS IN CASE</Text>
-            </View>
-            <View style={{ width: 40 }}>
-              <Text>CASE COST</Text>
-            </View>
-            <View style={{ width: 40 }}>
-              <Text>EXTENDED PRICE</Text>
-            </View>
-            <View style={{ width: 40 }}>
-              <Text>UNIT COST</Text>
-            </View>
-            <View style={{ width: 40 }}>
-              <Text>UNIT PRICE</Text>
-            </View>
-            <View style={{ width: 40 }}>
-              <Text>MARK UP</Text>
-            </View>
+
+            <TouchableOpacity
+              style={{ position: "absolute", bottom: 30, zIndex: 2, backgroundColor: "green", padding: 20, borderRadius: 20, shadowColor: "grey", shadowOpacity: 5 }}
+              onPress={() => setModalVisible(true)}
+            >
+              <Text style={{ color: "white", fontSize: 20 }}>Save Invoice</Text>
+            </TouchableOpacity>
+
+
+            {/*<View style={{ flexDirection: "row" }}>
+              <View style={{ width: 20 }}>
+                <Text>ID</Text>
+              </View>
+              <View style={{ width: 120 }}>
+                <Text>barcode</Text>
+              </View>
+              <View style={{ width: 60 }}>
+                <Text>posSku</Text>
+              </View>
+              <View style={{ width: 30 }}>
+                <Text>Quantity</Text>
+              </View>
+              <View style={{ width: 200 }}>
+                <Text>itemNO</Text>
+              </View>
+              <View style={{ width: 200 }}>
+                <Text>LINK PRODUCT</Text>
+              </View>
+              <View style={{ width: 300 }}>
+                <Text>LINK DESCRIPTION</Text>
+              </View>
+              <View style={{ width: 40 }}>
+                <Text>UNITS IN CASE</Text>
+              </View>
+              <View style={{ width: 40 }}>
+                <Text>CASE COST</Text>
+              </View>
+              <View style={{ width: 40 }}>
+                <Text>EXTENDED PRICE</Text>
+              </View>
+              <View style={{ width: 40 }}>
+                <Text>UNIT COST</Text>
+              </View>
+              <View style={{ width: 40 }}>
+                <Text>UNIT PRICE</Text>
+              </View>
+              <View style={{ width: 40 }}>
+                <Text>MARK UP</Text>
+              </View>
+      </View>*/}
+
+            <FlatList
+              style={{margin:10,padding:10}}
+              data={tableData}
+              renderItem={item}
+              keyExtractor={(item, index) => index.toString()}
+            />
+
           </View>
-
-          <FlatList
-            data={tableData}
-            renderItem={item}
-            keyExtractor={(item,index)=>index.toString()}
-          />
-        </View>
+        </>
       );
     }
   };
 
+
   return (
     <View>
       <Text>
-        {renderTableData()}
+        {loading ? <View style={{
+          display: "flex",
+          justifyContent: "center",
+          // alignSelf: 'center',
+          // position: 'absolute',
+          // alignItems: "center",
+          // alignContent:"center",
+          // bottom: 110,
+          // flexDirection: "row",
+          fontSize: 30,
+          // paddingEnd: 30,
+          // paddingStart: 30,
+          // paddingVertical: 16,
+          borderRadius: 9,
+          height: "100%",
+          width: "100%"
+          // margin:70
+
+        }}>
+
+          <View style={{ width: 400 }}>
+            <ActivityIndicator animating={loading} size="large" color="#0000ff" />
+            <View >
+              <Text style={{ alignSelf: "center" }}>Loading...</Text>
+            </View>
+          </View>
+
+        </View> :
+          renderTableData()
+
+        }
+
       </Text>
+      <Modal
+        animationType="slide"
+        transparent={false}
+        visible={modalVisible}
+        onRequestClose={() => {
+          Alert.alert("Modal has been closed.");
+          setModalVisible(!modalVisible);
+        }}
+      >
+        {modalLoader.loader == true && modalLoader.done == false ?
+          <View style={styles.centeredView}>
+            <View style={{ ...styles.modalView, padding: 40 }}>
+
+              <View>
+                <ActivityIndicator animating={modalLoader.loader} size="large" color="#0000ff" />
+                <View >
+                  <Text style={{ alignSelf: "center" }}>Saving...</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          :
+
+          modalLoader.loader == false && modalLoader.done == true ?
+            <View style={styles.centeredView}>
+              <View style={{ ...styles.modalView, }}>
+
+                <Image style={{ height: 150, width: 150 }} source={require('../images/icons.gif')} />
+                
+              </View>
+            </View>
+            :
+
+            <View style={styles.centeredView}>
+              <View style={styles.modalView}>
+
+                <Text style={styles.modalText}>Invoice Data</Text>
+
+                <DatePicker
+                  style={{ width: 250}}
+                  date={selectedData.date}
+                  mode="date"
+                  placeholder="Invoice Date"
+                  format="YYYY-MM-DD"
+
+                  confirmBtnText="Confirm"
+                  cancelBtnText="Cancel"
+                
+                  customStyles={{
+                    dateIcon: {
+                      position: 'absolute',
+                      left: 0,
+                      top: 0,
+                      marginLeft: 0,
+                      display: "none",
+                      
+                    },
+                    dateInput: {
+                      marginLeft: 0,
+                      borderRadius: 12,
+                      borderColor: "#f2f4f7",
+                      backgroundColor: "#f2f4f7",
+                      borderWidth:0.5,
+                      borderColor:"grey"
+                    }
+                    // ... You can check the source to find the other keys.
+                  }}
+                  onDateChange={(date) => setSelectedData((prev) => {
+                    return { ...prev, date: date }
+                  })}
+                />
+                <TextInput
+                  style={styles.input}
+                  onChangeText={(data) => setSelectedData((prev) => {
+                    return { ...prev, invoiceNo: data }
+                  })
+
+                  }
+                  value={selectedData.invoiceNo}
+                  placeholder="Invoice Number"
+                
+                />
+                <View style={{ flexDirection: "row-reverse" }}>
+
+                {selectedData.date!==""&&selectedData.invoiceNo!==""?
+                  <TouchableOpacity
+                    style={{ backgroundColor: "green", padding: 15, borderRadius: 40, shadowColor: "grey", shadowOpacity: 5, marginLeft: 20 }}
+                    onPress={() => saveInvoiceData()}
+                  >
+                    <Text style={{ color: "white", fontSize: 15 }}>➜</Text>
+                  </TouchableOpacity>
+
+                :
+                null}
+
+                  <TouchableOpacity
+                    style={{ backgroundColor: "red", padding: 15, borderRadius: 40, shadowColor: "grey", shadowOpacity: 5 }}
+                    onPress={() => setModalVisible(!modalVisible)}
+                  >
+                    <Text style={{ color: "white", fontSize: 15 }}>✘</Text>
+                  </TouchableOpacity>
+
+                </View>
+              </View>
+
+
+            </View>}
+      </Modal>
     </View>
   );
 }
 
-const styles = StyleSheet.create({})
+const styles = StyleSheet.create({
+  centeredView: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 22,
+    // width:400
+  },
+  modalView: {
+    margin: 10,
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 10,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5
+  },
+  button: {
+    borderRadius: 20,
+    padding: 10,
+    elevation: 2
+  },
+  buttonOpen: {
+    backgroundColor: "#F194FF",
+  },
+  buttonClose: {
+    backgroundColor: "#2196F3",
+  },
+  textStyle: {
+    color: "white",
+    fontWeight: "bold",
+    textAlign: "center"
+  },
+  modalText: {
+    marginBottom: 15,
+    textAlign: "center"
+  },
+  input: {
+    height: 40,
+    margin: 12,
+    borderWidth: 1,
+    padding: 10,
+    width: 250,
+    borderColor: "#f2f4f7",
+    backgroundColor: "#f2f4f7",
+    borderRadius: 12,
+    borderWidth:0.5,
+                      borderColor:"grey"
+  },
+  modalClosebtn: { backgroundColor: "#ff9494", padding: 15, borderRadius: 40, shadowColor: "grey", shadowOpacity: 2 }
+})
 
 export default ShowData;

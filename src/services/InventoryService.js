@@ -1,7 +1,8 @@
-import { POSAxios, WordpressAxios } from "./axios";
-import Axios from "./axios";
+import { POSAxios, WordpressAxios } from "../axios";
+import Axios from "../axios";
+import axios from "axios";
 const appendURL = process.env.NODE_ENV === "production" ? "/server" : "";
-
+import { ICMS_FRONTEND_IP } from "../variable";
 export class InventoryService {
   async GetProductDetails(productSKU) {
     const response = await WordpressAxios.get(`/products/`, {
@@ -24,7 +25,7 @@ export class InventoryService {
   }
 
   async GetPOSProductDetails(upc, itemName = "") {
-    const response = await Axios.get("http://65.1.117.32:5000" + "/api/getPOSProduct", {
+    const response = await Axios.get(ICMS_FRONTEND_IP + "/api/getPOSProduct", {
       params: { upc, itemName },
     });
     return response.data;
@@ -32,13 +33,13 @@ export class InventoryService {
   async UpdatePOSProducts(data) {
     console.log(data);
     const res = await Axios.post(
-      "http://65.1.117.32:5000" + "/api/pos/Product/ManageItem",
+      ICMS_FRONTEND_IP + "/api/pos/Product/ManageItem",
       data
     );
     return res.data;
   }
   async SyncInventory() {
-    const res = await Axios.get("http://65.1.117.32:5000" + "/api/sync");
+    const res = await Axios.get(ICMS_FRONTEND_IP + "/api/sync");
     console.log(res.data);
     return res.data;
   }
@@ -49,7 +50,7 @@ export class InventoryService {
      */
     //  console.log(data);
     const res = await Axios.put(
-      "http://65.1.117.32:5000" + "/api/invoice/product/update",
+      ICMS_FRONTEND_IP + "/api/invoice/product/update",
       data
     );
     return res.data;
@@ -58,7 +59,7 @@ export class InventoryService {
   // added by Deepanshu
   async UpdateHandWrittenProductFields(data) {
     const res = await Axios.put(
-      "http://65.1.117.32:5000" + "/api/handwritteninvoice/product/update",
+      ICMS_FRONTEND_IP + "/api/handwritteninvoice/product/update",
       data
     );
     return res.data;
@@ -69,15 +70,15 @@ export class InventoryService {
      * data format
      * {Item:String,Description:String,Quantity:String,Price:String,sku:String,Barcode:String,PosSKU:String,InvoiceName:String}
      */
-    const res = await Axios.post("http://65.1.117.32:5000" + "/api/invoice/notfound", data);
+    const res = await Axios.post(ICMS_FRONTEND_IP + "/api/invoice/notfound", data);
     return res.data;
   }
 
   async CreateScanInvoiceData(data) {
-    //console.log("IN INVENTORY SERVICE");
-    //console.log(data);
-    const res = await Axios.post(
-      "http://65.1.117.32:5000" + "/api/invoice/scaninvoicedata",
+    console.log("IN INVENTORY SERVICE");
+    console.log(data);
+    const res = await axios.post(
+      ICMS_FRONTEND_IP + "/api/invoice/scaninvoicedata",
       data
     );
     return res.data;
@@ -87,7 +88,7 @@ export class InventoryService {
     console.log(invoiceNo);
     console.log(itemNo);
     console.log(date);
-    const res = await Axios.post("http://65.1.117.32:5000" + "/api/invoice/updateinvoicedata", {
+    const res = await Axios.post(ICMS_FRONTEND_IP + "/api/invoice/updateinvoicedata", {
       params: {
         invoiceName: invoiceName,
         invoiceNo: invoiceNo,
@@ -101,7 +102,7 @@ export class InventoryService {
   async UpdateDBafterPosUpdate(data) {
     console.log(data);
     const res = await Axios.post(
-      "http://65.1.117.32:5000" + "/api/invoice/updatedbafterposupdate",
+      ICMS_FRONTEND_IP + "/api/invoice/updatedbafterposupdate",
       data
     );
     console.log(res);
@@ -109,7 +110,7 @@ export class InventoryService {
 
   async saveDetails(data) {
     console.log(data);
-    const res = await Axios.post("http://65.1.117.32:5000" + "/api/invoice/savedetails", data);
+    const res = await Axios.post(ICMS_FRONTEND_IP + "/api/invoice/savedetails", data);
     return res.data;
   }
 
@@ -118,7 +119,7 @@ export class InventoryService {
     console.log(invoiceNo);
     console.log(itemNo);
     console.log(date);
-    const res = await Axios.post("http://65.1.117.32:5000" + "/api/invoice/reverseposupdate", {
+    const res = await Axios.post(ICMS_FRONTEND_IP + "/api/invoice/reverseposupdate", {
       params: {
         invoiceName: invoiceName,
         invoiceNo: invoiceNo,
@@ -133,7 +134,7 @@ export class InventoryService {
     console.log("data : ", data);
 
     const res = await Axios.get(
-      "http://65.1.117.32:5000" + "/api/invoice/gethandwrittenposlogs",
+      ICMS_FRONTEND_IP + "/api/invoice/gethandwrittenposlogs",
       {
         params: {
           invoicename: data.invoicename,
@@ -149,7 +150,7 @@ export class InventoryService {
   async linkingCorrect(data) {
     console.log(data);
     const res = await Axios.post(
-      "http://65.1.117.32:5000" + "/api/invoice/linkingcorrect",
+      ICMS_FRONTEND_IP + "/api/invoice/linkingcorrect",
       data
     );
     return res;
@@ -159,7 +160,7 @@ export class InventoryService {
   async linkingCorrectInScaninvoice(data) {
     console.log(data);
     const res = await Axios.post(
-      "http://65.1.117.32:5000" + "/api/invoice/linkingCorrectInScaninvoice",
+      ICMS_FRONTEND_IP + "/api/invoice/linkingCorrectInScaninvoice",
       data
     );
     return res;
@@ -168,7 +169,7 @@ export class InventoryService {
   async saveDetailsInScaninvoice(data) {
     console.log(data);
     const res = await Axios.post(
-      "http://65.1.117.32:5000" + "/api/invoice/saveDetailsInScaninvoice",
+      ICMS_FRONTEND_IP + "/api/invoice/saveDetailsInScaninvoice",
       data
     );
     return res.data;
@@ -177,13 +178,13 @@ export class InventoryService {
   async linkManually(data) {
     console.log(data);
 
-    const res = await Axios.post("http://65.1.117.32:5000" + "/api/invoice/linkmanually", data);
+    const res = await Axios.post(ICMS_FRONTEND_IP + "/api/invoice/linkmanually", data);
     return res;
   }
 
   async getHicksvilleData(value) {
     console.log("in inventory for hicks data");
-    const res = await Axios.get("http://65.1.117.32:5000" + "/api/invoice/gethicksvilledata", {
+    const res = await Axios.get(ICMS_FRONTEND_IP + "/api/invoice/gethicksvilledata", {
       params: { input: value },
     });
     return res.data;
@@ -192,7 +193,7 @@ export class InventoryService {
   async getSavedInvoices(data) {
     console.log("in inventory for saved invoices");
     console.log(data);
-    const res = await Axios.get("http://65.1.117.32:5000" + "/api/invoice/getsavedinvoices", {
+    const res = await Axios.get(ICMS_FRONTEND_IP + "/api/invoice/getsavedinvoices", {
       params: data,
     });
     return res.data;
@@ -200,32 +201,32 @@ export class InventoryService {
 
   async UpdateDBProduct(data) {
     console.log(data);
-    const res = await Axios.put("http://65.1.117.32:5000" + "/api/invoice/pos/update", data);
+    const res = await Axios.put(ICMS_FRONTEND_IP + "/api/invoice/pos/update", data);
     return res.data;
   }
   async CreateDBProduct(data) {
-    const res = await Axios.post("http://65.1.117.32:5000" + "/api/invoice/pos/create", data);
+    const res = await Axios.post(ICMS_FRONTEND_IP + "/api/invoice/pos/create", data);
     return res.data;
   }
 
   async getInitialSyncedData(dateObj) {
     console.log("In inventory service");
     console.log(dateObj);
-    const res = await Axios.get("http://65.1.117.32:5000" + "/api/invoice/pos", dateObj);
+    const res = await Axios.get(ICMS_FRONTEND_IP + "/api/invoice/pos", dateObj);
     console.log(res);
     return res.data;
   }
 
   async generateLog(data) {
     console.log(data);
-    const res = await Axios.post("http://65.1.117.32:5000" + "/api/invoice/generatelog", data);
+    const res = await Axios.post(ICMS_FRONTEND_IP + "/api/invoice/generatelog", data);
     return res;
   }
 
   async linkManuallyLog(data) {
     console.log(data);
     const res = await Axios.post(
-      "http://65.1.117.32:5000" + "/api/invoice/linkmanuallylog",
+      ICMS_FRONTEND_IP + "/api/invoice/linkmanuallylog",
       data
     );
     return res;
@@ -235,7 +236,7 @@ export class InventoryService {
   async getLinkingLogsXlsx(data) {
     console.log(data);
     const res = await Axios({
-      url: "http://65.1.117.32:5000" + "/api/invoice/getlinkinglogsxlsx",
+      url: ICMS_FRONTEND_IP + "/api/invoice/getlinkinglogsxlsx",
       headers: { "Contant-Type": "application/json" },
       params: data,
       method: "GET",
@@ -248,7 +249,7 @@ export class InventoryService {
   async getPosLogsXlsx(data) {
     console.log(data);
     const res = await Axios({
-      url: "http://65.1.117.32:5000" + "/api/invoice/getposLogsxlsx",
+      url: ICMS_FRONTEND_IP + "/api/invoice/getposLogsxlsx",
       headers: { "Contant-Type": "application/json" },
       params: data,
       method: "GET",
@@ -261,7 +262,7 @@ export class InventoryService {
     console.log(data);
 
     const res = await Axios.post(
-      "http://65.1.117.32:5000" + "/api/invoice/reverseupdate",
+      ICMS_FRONTEND_IP + "/api/invoice/reverseupdate",
       data
     );
     return res.data;
@@ -270,7 +271,7 @@ export class InventoryService {
   async UnidentifiedLog(data) {
     console.log(data);
     const res = await Axios.post(
-      "http://65.1.117.32:5000" + "/api/invoice/unidentifiedlog",
+      ICMS_FRONTEND_IP + "/api/invoice/unidentifiedlog",
       data
     );
     return res;
@@ -279,7 +280,7 @@ export class InventoryService {
   async handwrittenPosLogs(data) {
     console.log(data);
     const res = await Axios.post(
-      "http://65.1.117.32:5000" + "/api/invoice/handwrittenposlogs",
+      ICMS_FRONTEND_IP + "/api/invoice/handwrittenposlogs",
       data
     );
     return res;
@@ -289,7 +290,7 @@ export class InventoryService {
       invoiceName: invName,
     };
     console.log(data);
-    const res = await Axios.get("http://65.1.117.32:5000" + "/api/invoice/gethandwrittenlogs", {
+    const res = await Axios.get(ICMS_FRONTEND_IP + "/api/invoice/gethandwrittenlogs", {
       params: data,
     });
     return res;
@@ -298,7 +299,7 @@ export class InventoryService {
   async fetchProductFromPosList(data) {
     console.log(data);
     const res = await Axios.get(
-      "http://65.1.117.32:5000" + "/api/invoice/fetchproductfromposlist",
+      ICMS_FRONTEND_IP + "/api/invoice/fetchproductfromposlist",
       data
     );
     return res.data;
@@ -306,13 +307,13 @@ export class InventoryService {
 
   async posLogs(data) {
     console.log(data);
-    const res = await Axios.post("http://65.1.117.32:5000" + "/api/invoice/poslogs", data);
+    const res = await Axios.post(ICMS_FRONTEND_IP + "/api/invoice/poslogs", data);
     return res.data;
   }
 
   async getItemForHandwrittenInvoice(data) {
     console.log(data);
-    const res = await Axios.get("http://65.1.117.32:5000" + "/api/invoice/getitemhandwritten", {
+    const res = await Axios.get(ICMS_FRONTEND_IP + "/api/invoice/getitemhandwritten", {
       params: data,
     });
     return res.data;
@@ -324,7 +325,7 @@ export class InventoryService {
      */
     //  console.log(data);
     const res = await Axios.put(
-      "http://65.1.117.32:5000" + "/api/invoice/updateinvoicedetails",
+      ICMS_FRONTEND_IP + "/api/invoice/updateinvoicedetails",
       data
     );
     return res.data;
@@ -332,24 +333,24 @@ export class InventoryService {
   async UpdateVerifyDetails(data) {
   
     const res = await Axios.put(
-      "http://65.1.117.32:5000" + "/api/invoice/updateverifydetails",
+      ICMS_FRONTEND_IP + "/api/invoice/updateverifydetails",
       data
     );
     return res.data;
   }
   async linkingCorrectTrue(data) {
     console.log(data);
-    const res = await Axios.post("http://65.1.117.32:5000"+ "/api/invoice/linkingcorrecttrue", data);
+    const res = await Axios.post(ICMS_FRONTEND_IP+ "/api/invoice/linkingcorrecttrue", data);
     return res;
   }
   async InsertAllProducts(data) {
     console.log(data);
-    const res = await Axios.post("http://65.1.117.32:5000" + "/api/allproducts",data);
+    const res = await axios.post(ICMS_FRONTEND_IP + "/api/allproducts",data);
     return res.data;
   }
   async getAllProductsDataByUsername(data) {
     // console.log(barcode);
-    const res = await Axios.get("http://65.1.117.32:5000" + "/api/getallproductsdatabyusername",{
+    const res = await Axios.get(ICMS_FRONTEND_IP + "/api/getallproductsdatabyusername",{
       params: data,
     });
     return res.data;

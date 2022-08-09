@@ -1,0 +1,1 @@
+export const ICMS_FRONTEND_IP="http://192.168.1.31:5002"

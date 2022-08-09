@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react"
-import { View, StyleSheet, Text, TouchableOpacity, Image, Platform } from "react-native"
+import { View, StyleSheet, Text, TouchableOpacity, Image, Platform ,Alert} from "react-native"
 import Permissions from 'react-native-permissions';
 import PDFScanner from "@woonivers/react-native-document-scanner"
 import { TesseractService } from "../services/TesserartService";
@@ -12,13 +12,14 @@ import { useRoute } from "@react-navigation/native";
 export default function Scaner({navigation}) {
   const pdfScannerElement = useRef(null)
   const [data, setData] = useState([])
-  const [savedImg, setSavedImg] = useState([]);
+  const [savedImg, setSavedImg] = useState(["/Users/vervebot/Desktop/vs_projects/icms_scanner/Scanner/src/img/0004.jpg"]);
   const [allowed, setAllowed] = useState(false)
   const [flash, setFlash] = useState(false)
   const [uploadedFilesName, setUploadedFilesName] = useState()
   const route = useRoute();
   const tesseractService = new TesseractService();
   console.log("select names",savedImg)
+  const [invoice, setInvoice] = useState(route.params.invoice);
 
 const img = "/Users/vervebot/Desktop/vs_projects/icms_scanner/Scanner/src/img/0004.jpg";
 
@@ -49,6 +50,21 @@ console.log("without crop",data)
     setData({})
   }
 
+  const topreview = () => {
+    console.log('data', data);
+    console.log('savedImg', savedImg);
+    console.log('invoice', invoice);
+
+    if(savedImg.length>0){
+      navigation.navigate('Preview', {
+        invoice: invoice,
+        savedImg: savedImg,
+      });
+    }else{
+      Alert.alert("Take Image First")
+    }
+  };
+
   function handleOnOk() {
     setSavedImg(current => [...current, data.croppedImage]);
 
@@ -74,19 +90,23 @@ console.log("without crop",data)
 <TouchableOpacity style={styles.imagePadding}> 
 </TouchableOpacity>
 
-        <TouchableOpacity onPress={handleOnPressRetry} style={styles.button}>
-          <Text style={styles.buttonText}>Retry</Text>
+        <TouchableOpacity onPress={handleOnPressRetry} style={styles.Retry_button}>
+          <Text style={{fontSize:25,padding:7}} >Retry</Text>
         </TouchableOpacity>
 
 
-        <TouchableOpacity onPress={handleOnOk} style={styles.button2}>
-          <Text style={styles.buttonText}>OK</Text>
+        <TouchableOpacity onPress={handleOnOk} style={styles.Ok_button}>
+          <Text style={{fontSize:25,padding:7}}>OK</Text>
         </TouchableOpacity>
       </React.Fragment>
     )
   }
   return (
     <React.Fragment>
+    <Text style={styles.imgCount}>{savedImg.length}</Text>
+    <TouchableOpacity onPress={FlashLight} style={styles.flash} >
+    { flash?<Text style={styles.flash}>☀️</Text>: <Text style={styles.flash}>⛅</Text>} 
+    </TouchableOpacity>
       <PDFScanner
         ref={pdfScannerElement}
         style={styles.scanner}
@@ -97,7 +117,33 @@ console.log("without crop",data)
         detectionCountBeforeCapture={5}
         detectionRefreshRateInMS={50}
       />
-      <TouchableOpacity onPress={async()=>{
+
+      <TouchableOpacity >
+      <Text style={styles.buttonText2}>{invoice.toUpperCase()}</Text>
+    </TouchableOpacity>
+    
+    <View style={{flex:1,flexDirection:"row" ,alignItems:"center",justifyContent:"space-around"}}>
+      <TouchableOpacity
+      style={styles.button} 
+      onPress={async ()=>{
+        // console.log("img3 : ",img)
+        // const res = await tesseractService.PostImage([img]);
+        // console.log("postImage : ",res)
+        // // setUploadedFilesName(res)
+
+        // navigation.navigate('ShowData',{
+        //   filename:res,
+        //   selectedInvoice:"chetak"
+        // })
+        topreview()
+      }}
+      >
+        <Text style={styles.button2}>✅</Text>
+      </TouchableOpacity>
+    
+      <TouchableOpacity
+    style={styles.button} 
+       onPress={async()=>{
 
 
         let ocrdata  = await Promise.all(uploadedFilesName.map(async (file)=>{
@@ -115,34 +161,20 @@ console.log("without crop",data)
 
 
 
-      }} style={styles.button}>
-        <Text style={{...styles.buttonText,fontSize:60}}>◉</Text>
+      }} >
+        <Text style={styles.captureButton} >◉</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity  style={styles.button3}
-      onPress={async ()=>{
-        console.log("img3 : ",img)
-        const res = await tesseractService.PostImage([img]);
-        console.log("postImage : ",res)
-        // setUploadedFilesName(res)
-
-        navigation.navigate('ShowData',{
-          filename:res,
-          selectedInvoice:"chetak"
-        })
-      }}
-      >
-        <Text style={styles.buttonText}>✅: {savedImg.length}</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={ResetSavedImg}  style={styles.button4}>
-        <Text style={styles.buttonText}>❌</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={FlashLight}  style={styles.button5}>
-      { flash?<Text style={styles.buttonText}>☀️</Text>: <Text style={styles.buttonText}>⛅</Text>} 
-      </TouchableOpacity>
-
+      
+      <View style={styles.rightSideComp} >
+        
+    
+          <TouchableOpacity onPress={ResetSavedImg}  >
+            <Text style={styles.buttonText}>❌</Text>
+          </TouchableOpacity>
+      </View>
+     
+      </View>
     </React.Fragment>
   )
 }
@@ -151,20 +183,81 @@ const styles = StyleSheet.create({
   scanner: {
     flex: 1,
     aspectRatio: undefined,
-    marginTop:130,
-    marginBottom:130,
+    // marginTop:400,
+    marginBottom:0,
+    paddingTop:400
     
   },
-  button: {
+  Retry_button: {
     alignSelf: "center",
     position: "absolute",
-    bottom: 32,
+    bottom: 50,
+    
+   
+    textAlignVertical:"center",
+    backgroundColor:"#ded7d7",
+    borderRadius:15
+    
+  },
+  Ok_button: {
+    alignSelf: "flex-start",
+    position: "absolute",
+    bottom: 50,
+   left:20,
+    textAlignVertical:"center",
+    backgroundColor:"#ded7d7",
+    borderRadius:15
   },
   button2: {
-    alignSelf:"flex-start",
+    // alignSelf:"flex-start",
+    position: "relative",
+    // bottom: 32,
+    // left:20,
+    top:0,
+    fontSize:30,
+    // alignSelf:"center"
+    // alignItems:"center",
+    // textAlignVertical:"center",
+    // height:70
+
+  },
+  captureButton: {
+    // alignSelf:"flex-start",
+    // position: "absolute",
+    // bottom: 32,
+    // left:20,
+    fontSize:80,
+    // textAlignVertical:"center",
+    // height:80
+  },
+  rightSideComp:{
+    display:"flex",
+    // padding:70,
+    flexDirection:"column",
+    alignItems:"center",justifyContent:"space-between",
+    // width:40
+    // textAlignVertical:"center",
+    // height:1
+  },
+  flash:{
+    // alignSelf:"flex-start",
     position: "absolute",
-    bottom: 32,
-    left:20,
+    // bottom: -100,
+    // left:20,
+    // top:0,
+    right:2,
+    margin:10,
+    fontSize:25,
+    zIndex:2
+  },
+  imgCount:{
+    position: "absolute",
+    // right:2,
+    margin:20,
+    fontSize:25,
+    zIndex:2,
+    left:2,
+    color:"white"
   },
   button3:{
     alignSelf:"flex-start",
@@ -185,10 +278,26 @@ const styles = StyleSheet.create({
     right:80,
   },
   buttonText: {
-    borderRadius: 10,
-    padding: 6,
-    backgroundColor: "#fff",
+    // borderRadius: 10,
+    // padding: 6,
+    // backgroundColor: "#fff",
     fontSize: 25,
+    // marginTop:10,
+    // marginBottom:20
+  },
+  buttonText2: {
+    padding: 5,
+    // backgroundColor: '#000',
+    fontSize: 20,
+    alignSelf: 'center',
+    color: '#000',
+  },
+  button6: {
+    alignSelf: 'flex-end',
+    position: 'absolute',
+    bottom: 140,
+    right: 10,
+    left: 10,
   },
   preview: {
     flex: 1,
