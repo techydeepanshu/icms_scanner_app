@@ -12,7 +12,7 @@ import { useRoute } from "@react-navigation/native";
 export default function Scaner({navigation}) {
   const pdfScannerElement = useRef(null)
   const [data, setData] = useState([])
-  const [savedImg, setSavedImg] = useState(["/Users/vervebot/Desktop/vs_projects/icms_scanner/Scanner/src/img/0004.jpg"]);
+  const [savedImg, setSavedImg] = useState([]);
   const [allowed, setAllowed] = useState(false)
   const [flash, setFlash] = useState(false)
   const [uploadedFilesName, setUploadedFilesName] = useState()

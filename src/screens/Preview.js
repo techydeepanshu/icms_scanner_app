@@ -43,58 +43,68 @@ const Preview = ({ navigation }) => {
   console.log('select names', savedImg);
   return (
     <View>
-      <Text
-        style={{
-          fontSize: 20,
-          alignSelf: 'flex-start',
-          left: 10,
-          top: 10,
-          color: '#000',
-          padding: 2,
-        }}>
-        Invoice: {invoice}
-      </Text>
-      <Text
-        style={{
-          fontSize: 20,
-          alignSelf: 'flex-start',
-          left: 7,
-          color: '#000',
-          padding: 4,
-        }}>
-        Images: {savedImg.length}
-      </Text>
-      <ScrollView style={{ marginBottom: 220 }}>
-        <View style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap' }}>
-          {savedImg.map((image, index) => (
-            <TouchableOpacity key={index} onPress={() => to_Img_Preview(image)}>
-              <Image
-                source={{ uri: image }}
-                style={{
-                  width: DeviceWidth / 3 - 6,
-                  height: DeviceHeight / 4,
-                  margin: 2,
-                }}
-              />
-              <TouchableOpacity
-                onPress={() => delete_image(image)}
-                style={{
-                  alignItems: 'center',
-                  padding: 10,
-                  marginBottom: 10,
-                  marginHorizontal: 2,
-                  borderColor: 'black',
-                  borderWidth: 2,
-                }}>
-                <Text style={{ color: 'red' }}>Delete 🗑️</Text>
-              </TouchableOpacity>
-              {/* </View> */}
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
+    <Text
+    style={{
+      fontSize: 20,
+      alignSelf: 'flex-start',
+      left: 7,
+      color: '#6498ed',
+      padding: 13,
+      alignSelf: 'center',
+    }}>
+   {invoice} :  {savedImg.length}
+  </Text>
+  <ScrollView style={{marginBottom: 220}}>
+    <View style={{display: 'flex', flexDirection: 'row', flexWrap: 'wrap',padding:10}}>
+      {savedImg.map((image, index) => (
+        <TouchableOpacity key={index} onPress={() => to_Img_Preview(image)}>
+          <Image
+            source={{uri: image}}
+            style={{
+              width: DeviceWidth / 3 - 6,
+              height: DeviceHeight / 4,
+              marginHorizontal: 2,
+              borderTopLeftRadius: 10,
+              borderTopRightRadius: 10,
+            }}
+          />
+          <TouchableOpacity
+            onPress={() => delete_image(image)}
+            style={{
+              alignItems: 'center',
+              padding: 10,
+              marginBottom: 10,
+              marginHorizontal: 2,
+              backgroundColor: '#ff6161',
+              borderBottomLeftRadius: 10,
+              borderBottomRightRadius: 10,
+            }}>
+            <Text style={{color:'white'}}>Delete</Text>
+          </TouchableOpacity>
+          {/* </View> */}
+        </TouchableOpacity>
+      ))}
+    </View>
+  </ScrollView>
 
-      <TouchableOpacity
+{loading ?
+      
+         <View style={{
+          alignSelf: 'center',
+          position: 'absolute',
+          bottom: 110,
+
+          fontSize: 30,
+          // paddingEnd: 30,
+          // paddingStart: 30,
+          // paddingVertical: 16,
+          borderRadius: 9,
+        }}>
+          <ActivityIndicator animating={loading} size="large" color="#0000ff" />
+          <View>
+            <Text >Uploading, Please wait...</Text></View>
+        </View> :
+        <TouchableOpacity
         onPress={async () => {
           setLoading(true)
           console.log("img3 : ", savedImg)
@@ -109,21 +119,6 @@ const Preview = ({ navigation }) => {
           setLoading(false)
         }}
       >
-        {loading ? <View style={{
-          alignSelf: 'center',
-          position: 'absolute',
-          bottom: 110,
-
-          fontSize: 30,
-          // paddingEnd: 30,
-          // paddingStart: 30,
-          // paddingVertical: 16,
-          borderRadius: 9,
-        }}>
-          <ActivityIndicator animating={loading} size="large" color="#0000ff" />
-          <View>
-            <Text >Loading...</Text></View>
-        </View> :
         <View
         style={{
           alignSelf: 'center',
@@ -153,8 +148,10 @@ const Preview = ({ navigation }) => {
            >
             SCAN
           </Text>
-          </View>}
-      </TouchableOpacity>
+          </View>
+        
+        </TouchableOpacity>}
+      
     </View>
   );
 };

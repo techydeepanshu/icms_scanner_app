@@ -1,5 +1,7 @@
 require_relative '../node_modules/react-native/scripts/react_native_pods'
 require_relative '../node_modules/@react-native-community/cli-platform-ios/native_modules'
+# Override Firebase SDK Version
+$FirebaseSDKVersion = '9.4.0'
 
 platform :ios, '11.0'
 install! 'cocoapods', :deterministic_uuids => false
@@ -26,6 +28,10 @@ target 'Scanner' do
   pod 'Permission-Siri', :path => "#{permissions_path}/Siri"
   pod 'Permission-SpeechRecognition', :path => "#{permissions_path}/SpeechRecognition"
   pod 'Permission-StoreKit', :path => "#{permissions_path}/StoreKit"
+  pod 'Firebase', :modular_headers => true
+  pod 'FirebaseCoreInternal', :modular_headers => true
+  pod 'GoogleUtilities', :modular_headers => true
+  pod 'FirebaseCore', :modular_headers => true
   config = use_native_modules!
 
   # Flags change depending on the env values.
@@ -39,6 +45,8 @@ target 'Scanner' do
     # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
+
+  pod 'react-native-splash-screen', :path => '../node_modules/react-native-splash-screen'
 
   target 'ScannerTests' do
     inherit! :complete

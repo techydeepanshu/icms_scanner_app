@@ -13,6 +13,7 @@ const Login = ({ navigation }) => {
     setConfirm(!null);
     Alert.alert('it might take some time to get the code, please wait');
     const confirmation = await auth().signInWithPhoneNumber(phoneNumber);
+    console.log("confirmation : ",confirmation)
     setConfirm(confirmation);
     Alert.alert('code has been sent to your phone'); 
   }

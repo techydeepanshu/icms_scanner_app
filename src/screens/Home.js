@@ -5,17 +5,17 @@ import {
   TextInput,
   ActivityIndicator,
   TouchableOpacity,
+  ImageBackground,
   StyleSheet,
 } from 'react-native';
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 // import MapView from 'react-native-maps';
 // import MapViewDirections from 'react-native-maps-directions';
 import Dropdown from './Dropdown';
-const Home = ({ navigation }) => {
-  const GOOGLE_MAPS_APIKEY = 'AIzaSyAW3OdhetYZf8wTKXqiFD8CRaIx02w7a38';
-  const origin = { latitude: 37.3318456, longitude: -122.0296002 };
-  const destination = { latitude: 37.771707, longitude: -122.4053769 };
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import auth from '@react-native-firebase/auth';
+const Home = ({navigation}) => {
+  const Imagemain = require('../assets/Home_image2.png');
   const [loading, setLoading] = useState(false);
 
   const todropdownSupporter = () => {
@@ -28,51 +28,93 @@ const Home = ({ navigation }) => {
     setTimeout(todropdownSupporter, 10);
   };
 
+  const SingOutUser = async () =>{
+    const res = await auth().signOut().then(async() => {
+      // Sign-out successful.
+      await AsyncStorage.removeItem('username');
+      await AsyncStorage.removeItem('password');
+      navigation.navigate('Login2')
+    }).catch((error) => {
+      // An error happened.
+      console.log(error)
+      Alert.alert('Error Occured')
+    });
+  }
+
   return (
     <View>
-      <View style={{ margin: '40%' }}></View>
-      {loading ? (
-        <ActivityIndicator animating={loading} size="large" color="#0000ff" />
-      ) : (
-        null
-      )}
-      <TouchableOpacity
+            
+      <View
         style={styles.container}
         title="Select Invoice"
-        onPress={todropdown}>
-        {loading ? (
+        >
+        {loading ? (<>
+          <ActivityIndicator style={{marginTop:'60%'}} animating={loading} size="large" color="#0000ff" />
           <Text pointerEvents="none" style={styles.buttonText2}>
             Loading invoices Please wait...
           </Text>
+          </>
         ) : (
+          <ImageBackground source={Imagemain} resizeMode='cover' style={{...styles.backgroundImage,width: '100%', height: '100%' }}>
+          <TouchableOpacity onPress={todropdown}>
           <View style={styles.buttonText}>
-            <Text style={{
-              fontSize: 20,
-              alignSelf: 'center',
-              color: '#fff',
-            }}>SCAN 🖨️</Text>
+            <Text style={{fontSize:30}}>SCAN 🖨️</Text>
           </View>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={SingOutUser}>
+            <View style={styles.signOut}>
+              <Text style={{fontSize:18}}>Logout</Text>
+            </View>
+          </TouchableOpacity>
+          </ImageBackground>
         )}
-      </TouchableOpacity>
+      </View>
+     
     </View>
   );
 };
 
-const styles = new StyleSheet.create({
+const styles = StyleSheet.create({
   buttonText: {
-    borderRadius: 20,
-    padding: 30,
-    backgroundColor: '#000',
+    
+    borderRadius: 50,
+    paddingHorizontal: 100,
+    paddingVertical: 10,
+    backgroundColor: '#6498ed',
+    borderColor: '#0000ff',
+    borderWidth: 1,
     fontSize: 20,
+    top: '1100%',
     alignSelf: 'center',
     color: '#fff',
   },
   buttonText2: {
-    borderRadius: 20,
-
     fontSize: 20,
     alignSelf: 'center',
     color: '#000',
+    padding: 13,
+
+  },
+  signOut: {
+    borderRadius: 50,
+    paddingHorizontal: 100,
+    paddingVertical: 10,
+    // backgroundColor: '#6498ed',
+    borderColor: '#0000ff',
+    // borderWidth: 1,
+    fontSize: 20,
+    top: '1550%',
+    alignSelf: 'center',
+    color: '#fff',
+    // marginBottom:30,
+   
+  },
+  backgroundImage: {
+    // flex: 1,
+    // width: null,
+    // height: null,
+    backgroundColor: 'red',
+    opacity: 0.8,
   },
 });
 export default Home;
